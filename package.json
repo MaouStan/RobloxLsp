@@ -3,7 +3,7 @@
 		"onLanguage:lua",
 		"workspaceContains:/*.project.json"
 	],
-	"author": "Nightrains",
+	"author": "MaouStan",
 	"capabilities": {
 		"untrustedWorkspaces": {
 			"description": "",
@@ -1347,8 +1347,8 @@
 			}
 		]
 	},
-	"description": "Roblox Luau Language Server.",
-	"displayName": "Roblox LSP",
+	"description": "Roblox Luau Language Server - Customized by MaouStan",
+	"displayName": "Roblox LSP for MaouStan",
 	"engines": {
 		"vscode": "^1.60.0"
 	},
@@ -1360,13 +1360,13 @@
 	],
 	"license": "MIT",
 	"main": "./client/out/extension",
-	"name": "robloxlsp",
-	"publisher": "Nightrains",
+	"name": "robloxlsp-maoustan",
+	"publisher": "MaouStan",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/NightrainsRbx/RobloxLsp"
+		"url": "https://github.com/MaouStan/RobloxLsp"
 	},
-	"version": "1.6.8",
+	"version": "1.7.0",
 	"__metadata": {
 		"id": "169d2b9c-69d2-482a-aee2-ea6c33ed4e89",
 		"publisherId": "e1e7384e-2406-4940-a937-5fad58f8815e",

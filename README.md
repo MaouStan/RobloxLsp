@@ -1,13 +1,37 @@
-# Roblox Luau Language Server
+# Roblox LSP for MaouStan
+
+**Customized version of Roblox Luau Language Server by MaouStan**
+
+---
+
+## Credits
 
 [Original Project](https://github.com/sumneko/lua-language-server) by [sumneko](https://github.com/sumneko)
+[Original Roblox LSP](https://github.com/NightrainsRbx/RobloxLsp) by [Nightrains](https://github.com/NightrainsRbx)
+
+## What's New in This Version
+
+### Custom Features Added by MaouStan:
+- **`---@import` annotation** - Import variables from external files
+  ```lua
+  ---@import "Utils/ScriptLoader/init.luau"
+  local GG = loadstring(readfile("Utils/ScriptLoader/init.luau"))()
+  ```
+- **Auto-detection of `loadstring(readfile(...))()`** pattern
+- **Security improvements**: Path traversal protection, circular import detection
+- **Performance improvements**: LRU cache for imported globals
+
+## Install In VSCode
 
 Make sure you don't have both [Lua](https://marketplace.visualstudio.com/items?itemName=sumneko.lua) by sumneko and Roblox LSP enabled.
 
-## Install In VSCode
+### From Marketplace (Original)
 https://marketplace.visualstudio.com/items?itemName=Nightrains.robloxlsp
 
-## More Info 
+### Build from Source (MaouStan's Version)
+See Build section below.
+
+## More Info
 https://devforum.roblox.com/t/roblox-lsp-full-intellisense-for-roblox-and-luau/717745
 
 ## Get Help
@@ -32,7 +56,7 @@ This project doesn't support Luau static typing and never will, you should alway
 - Find All References
 - Hover
 - Diagnostics
--  Rename
+- Rename
 - Signature Help
 - Document Symbols
 - Workspace Symbols
@@ -41,6 +65,7 @@ This project doesn't support Luau static typing and never will, you should alway
 - Code Action
 - Multi Workspace
 - Semantic Tokens
+- **@import annotation for variable imports** (NEW)
 
 ### Preview
 
@@ -50,9 +75,30 @@ This project doesn't support Luau static typing and never will, you should alway
 
 ## Build
 
-You can download the extension with precompiled binaries here: https://github.com/NightrainsRbx/RobloxLsp/releases
+### Prerequisites
+- Node.js and npm
+- vsce (VSCode Extension Manager)
+  ```bash
+  npm install -g @vscode/vsce
+  ```
 
-If you need to build your own binaries, follow the instructions at https://github.com/sumneko/lua-language-server
+### Build Steps
+1. Install client dependencies:
+   ```bash
+   cd client
+   npm install
+   ```
+
+2. Package extension:
+   ```bash
+   cd ..
+   vsce package
+   ```
+
+3. Install the generated `.vsix` file:
+   ```bash
+   code --install-extension robloxlsp-maoustan-1.7.0.vsix
+   ```
 
 ## Credit
 
