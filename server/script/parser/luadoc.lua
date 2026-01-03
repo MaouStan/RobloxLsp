@@ -1022,6 +1022,31 @@ local function parseModule(comment)
     }
 end
 
+local function parseImport(comment)
+    local result = {
+        type = "doc.import",
+    }
+    result.start = getStart()
+    result.finish = comment.finish
+
+    -- Extract the file path from the comment
+    -- Supports: ---@import "path/to/file.luau" or ---@import 'path/to/file.luau'
+    local path = comment.text:match('^%-%s*@import%s*[\'"](.-)[\'"]%s*$')
+    if not path then
+        -- Fallback: try to get path from the next token (string)
+        local tp, str = peekToken()
+        if tp == 'string' then
+            nextToken()
+            path = str
+            result.finish = getFinish()
+        end
+    end
+
+    result.path = path or ""
+
+    return result
+end
+
 local function convertTokens(comment)
     local tp, text = nextToken()
     if not tp then
@@ -1065,6 +1090,8 @@ local function convertTokens(comment)
         return parseDiagnostic()
     elseif text == 'module' then
         return parseModule(comment)
+    elseif text == 'import' then
+        return parseImport(comment)
     elseif text == 'typecheck' then
         return parseTypecheck()
     end
