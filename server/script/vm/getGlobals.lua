@@ -10,9 +10,53 @@ local rojo        = require 'library.rojo'
 local util        = require 'utility'
 local workspace   = require 'workspace.workspace'
 local vm          = require 'vm.vm'
+local log         = require 'log'
 
--- Cache for imported globals
+-- LRU Cache for imported globals with size limit
 local importCache = {}
+local cacheOrder = {}
+local CACHE_SIZE_LIMIT = 100
+
+--- Add to LRU cache with eviction
+local function addToCache(uri, globals)
+    -- Remove oldest if at limit
+    if #cacheOrder >= CACHE_SIZE_LIMIT then
+        local oldest = table.remove(cacheOrder, 1)
+        importCache[oldest] = nil
+    end
+
+    -- Update position if already exists
+    for i, cachedUri in ipairs(cacheOrder) do
+        if cachedUri == uri then
+            table.remove(cacheOrder, i)
+            break
+        end
+    end
+
+    importCache[uri] = globals
+    table.insert(cacheOrder, uri)
+end
+
+--- Clear cache for a specific URI or all cache
+local function clearImportCache(uri)
+    if uri then
+        importCache[uri] = nil
+        for i, cachedUri in ipairs(cacheOrder) do
+            if cachedUri == uri then
+                table.remove(cacheOrder, i)
+                break
+            end
+        end
+    else
+        importCache = {}
+        cacheOrder = {}
+    end
+end
+
+--- Invalidate cache when files change (hook into file watch)
+local function onFileChanged(uri)
+    clearImportCache(uri)
+end
 
 --- Resolve import path relative to the current file
 ---@param uri string The current file URI
@@ -20,6 +64,18 @@ local importCache = {}
 ---@return string|nil resolvedUri The resolved URI or nil if not found
 local function resolveImportPath(uri, importPath)
     if not uri or not importPath or importPath == "" then
+        return nil
+    end
+
+    -- Prevent path traversal attacks
+    if importPath:match("%.%.") then
+        log.warn('Path traversal blocked in import:', importPath)
+        return nil
+    end
+
+    -- Reject absolute paths (security)
+    if importPath:match("^[/\\]") or importPath:match("^[A-Za-z]:") then
+        log.warn('Absolute path blocked in import:', importPath)
         return nil
     end
 
@@ -50,11 +106,55 @@ local function resolveImportPath(uri, importPath)
     return furi.encode(normalizedPath)
 end
 
+--- Load globals from an imported file with error handling
+---@param importUri string The URI of the imported file
+---@param mark table Mark table to prevent duplicates
+---@return table|nil globals Array of global definitions or nil on failure
+local function loadImportedGlobals(importUri, mark)
+    -- Check cache first
+    if importCache[importUri] then
+        return importCache[importUri]
+    end
+
+    -- Use pcall for error handling
+    local success, result = pcall(function()
+        local importAst = files.getAst(importUri)
+        if importAst and importAst.ast then
+            local importGlobals = guide.findGlobals(importAst.ast)
+            local cached = {}
+            for _, global in ipairs(importGlobals) do
+                if not mark[global] then
+                    cached[#cached+1] = global
+                    mark[global] = true
+                end
+            end
+            return cached
+        end
+        return {}
+    end)
+
+    if not success then
+        log.warn('Failed to parse imported file:', importUri, result)
+        addToCache(importUri, {})
+        return nil
+    end
+
+    addToCache(importUri, result)
+    return result
+end
+
 --- Get globals from imported files via @import annotations
 ---@param uri string The current file URI
 ---@param ast table The AST of the current file
+---@param visited table Table to track visited URIs and prevent circular imports
 ---@return table importedGlobals Array of imported global definitions
-local function getImportedGlobals(uri, ast)
+local function getImportedGlobals(uri, ast, visited)
+    visited = visited or {}
+    if visited[uri] then
+        return {}  -- Circular import detected, stop recursion
+    end
+    visited[uri] = true
+
     local imported = {}
     local mark = {}
 
@@ -67,29 +167,14 @@ local function getImportedGlobals(uri, ast)
         if doc.type == 'doc.import' and doc.path and doc.path ~= "" then
             local importUri = resolveImportPath(uri, doc.path)
             if importUri and files.exists(importUri) then
-                -- Check cache first
-                if not importCache[importUri] then
-                    local importAst = files.getAst(importUri)
-                    if importAst and importAst.ast then
-                        local importGlobals = guide.findGlobals(importAst.ast)
-                        local cached = {}
-                        for _, global in ipairs(importGlobals) do
-                            if not mark[global] then
-                                cached[#cached+1] = global
-                                mark[global] = true
-                            end
+                -- Load globals from imported file (with circular import protection)
+                local globals = loadImportedGlobals(importUri, mark)
+                if globals then
+                    for _, global in ipairs(globals) do
+                        if not mark[global] then
+                            imported[#imported+1] = global
+                            mark[global] = true
                         end
-                        importCache[importUri] = cached
-                    else
-                        importCache[importUri] = {}
-                    end
-                end
-
-                -- Add cached globals to result
-                for _, global in ipairs(importCache[importUri]) do
-                    if not mark[global] then
-                        imported[#imported+1] = global
-                        mark[global] = true
                     end
                 end
             end
@@ -164,8 +249,15 @@ end
 --- Get globals from loadstring(readfile(...))() patterns
 ---@param uri string The current file URI
 ---@param ast table The AST of the current file
+---@param visited table Table to track visited URIs and prevent circular imports
 ---@return table importedGlobals Array of imported global definitions
-local function getLoadstringImports(uri, ast)
+local function getLoadstringImports(uri, ast, visited)
+    visited = visited or {}
+    if visited[uri] then
+        return {}  -- Circular import detected
+    end
+    visited[uri] = true
+
     local imported = {}
     local mark = {}
 
@@ -179,29 +271,14 @@ local function getLoadstringImports(uri, ast)
     for _, path in ipairs(paths) do
         local importUri = resolveImportPath(uri, path)
         if importUri and files.exists(importUri) then
-            -- Check cache first
-            if not importCache[importUri] then
-                local importAst = files.getAst(importUri)
-                if importAst and importAst.ast then
-                    local importGlobals = guide.findGlobals(importAst.ast)
-                    local cached = {}
-                    for _, global in ipairs(importGlobals) do
-                        if not mark[global] then
-                            cached[#cached+1] = global
-                            mark[global] = true
-                        end
+            -- Load globals from imported file (with circular import protection)
+            local globals = loadImportedGlobals(importUri, mark)
+            if globals then
+                for _, global in ipairs(globals) do
+                    if not mark[global] then
+                        imported[#imported+1] = global
+                        mark[global] = true
                     end
-                    importCache[importUri] = cached
-                else
-                    importCache[importUri] = {}
-                end
-            end
-
-            -- Add cached globals to result
-            for _, global in ipairs(importCache[importUri]) do
-                if not mark[global] then
-                    imported[#imported+1] = global
-                    mark[global] = true
                 end
             end
         end
@@ -256,8 +333,11 @@ function vm.getGlobals(key, uri, onlySet)
     local fileGlobals = guide.findGlobals(ast.ast)
     local mark = {}
 
+    -- Track visited URIs to prevent circular imports
+    local visited = {}
+
     -- Add globals from imported files
-    local importedGlobals = getImportedGlobals(uri, ast)
+    local importedGlobals = getImportedGlobals(uri, ast, visited)
     for _, res in ipairs(importedGlobals) do
         if not mark[res] then
             mark[res] = true
@@ -268,7 +348,7 @@ function vm.getGlobals(key, uri, onlySet)
     end
 
     -- Add globals from loadstring(readfile(...))() patterns
-    local loadstringGlobals = getLoadstringImports(uri, ast)
+    local loadstringGlobals = getLoadstringImports(uri, ast, visited)
     for _, res in ipairs(loadstringGlobals) do
         if not mark[res] then
             mark[res] = true
@@ -303,3 +383,7 @@ end
 function vm.getGlobalSets(key, uri)
     return vm.getGlobals(key, uri, true)
 end
+
+-- Export cache clearing function for external use
+vm.clearImportCache = clearImportCache
+vm.onFileChanged = onFileChanged
