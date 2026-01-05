@@ -14,3 +14,13 @@ TODO-LIST
 # But keep the directories
 !ψ*/
 !.gitkeep
+
+# Temporary files
+*.log
+nul
+tmp/
+luau-lsp.exe
+package-lock.json
+
+# VSCode extension packages
+*.vsix
