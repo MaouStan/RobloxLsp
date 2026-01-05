@@ -47,6 +47,8 @@ local function getFields(source, deep, filterKey, options)
         end
         for _, export in ipairs(importedExports) do
             if not mark[export] then
+                -- Mark this field as coming from @import for priority sorting
+                export.fromImport = true
                 results[#results+1] = export
             end
         end
@@ -119,6 +121,8 @@ function vm.getFields(source, deep, options)
                 end
                 for _, export in ipairs(importedExports) do
                     if not mark[export] then
+                        -- Mark this field as coming from @import for priority sorting
+                        export.fromImport = true
                         cache[#cache+1] = export
                     end
                 end

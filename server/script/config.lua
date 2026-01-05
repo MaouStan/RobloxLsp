@@ -150,6 +150,8 @@ local ConfigTemplate = {
     },
     workspace = {
         ignoreDir         = {{".vscode", "**/_Index/**"},      Str2Hash ';'},
+        excludeMode       = {"blacklist", String},
+        includeDir        = {{},      Str2Hash ';'},
         ignoreSubmodules  = {true,    Boolean},
         rojoProjectFile   = {"",      String},
         loadMode          = {'All Files', String},
@@ -216,6 +218,10 @@ local ConfigTemplate = {
         serverPort            = {27843,     Integer},
         useOfficialLsp        = {false,     Boolean},
         useMaouDataTypes      = {true,      Boolean},
+    },
+    quickImport = {
+        enable          = {true,  Boolean},
+        showCodeAction  = {true,  Boolean},
     },
     suggestedImports = {
         enable            = {true,  Boolean},

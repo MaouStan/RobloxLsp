@@ -1,7 +1,11 @@
-local GG = {}
+local M = {}
 
-function GG.greet(name)
-    return "Hello, " .. name .. "!"
+function M.win()
+    print("win from import")
 end
 
-return GG
+function M.greet()
+    print("greet from import")
+end
+
+return M

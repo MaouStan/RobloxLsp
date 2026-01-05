@@ -211,6 +211,74 @@ local function solveSuggestedImport(uri, diag, results)
     end
 end
 
+-- Suggest adding @import annotation instead of or in addition to require()
+local function solveAddImportAnnotation(uri, diag, results)
+    if not config.config.quickImport.enable or not config.config.quickImport.showCodeAction then
+        return
+    end
+    
+    local ast    = files.getAst(uri)
+    local offset = files.offsetOfWord(uri, diag.range["end"])
+    local name = guide.eachSourceContain(ast.ast, offset, function (source)
+        if source.type == "type.name" then
+            return source[1]
+        end
+        if source.type ~= 'getglobal' then
+            return
+        end
+
+        return guide.getKeyName(source)
+    end)
+
+    local matches = rbximports.findPotentialImportsSorted(uri, name, ast, offset)
+
+    local paths = {}
+    for _, match in ipairs(matches) do
+        if config.config.suggestedImports.importPathType == "Both" then
+            if match.absoluteLuaPath then
+                paths[#paths+1] = match.absoluteLuaPath
+            end
+            if match.relativeLuaPath then
+                paths[#paths+1] = match.relativeLuaPath
+            end
+        elseif config.config.suggestedImports.importPathType == "Shortest First" then
+            if match.relativeLuaPath and match.absoluteLuaPath then
+                if #match.relativeLuaPath < #match.absoluteLuaPath then
+                    paths[#paths+1] = match.relativeLuaPath
+                else
+                    paths[#paths+1] = match.absoluteLuaPath
+                end
+            else
+                paths[#paths+1] = match.relativeLuaPath or match.absoluteLuaPath
+            end
+        else
+            paths[#paths+1] = match.relativeLuaPath or match.absoluteLuaPath
+        end
+    end
+
+    if config.config.suggestedImports.importPathType == "Shortest First" then
+        table.sort(paths)
+    end
+
+    for index, path in ipairs(paths) do
+        if index > 10 then
+            break
+        end
+        
+        results[#results + 1] = {
+            title = lang.script('ACTION_ADD_IMPORT_ANNOTATION', path, name),
+            kind = 'quickfix',
+            edit = {
+                changes = {
+                    [uri] = {
+                        [1] = rbximports.buildInsertImportAnnotation(ast, offset, name, path)
+                    }
+                }
+            }
+        }
+    end
+end
+
 local function solveUndefinedGlobal(uri, diag, results)
     local ast    = files.getAst(uri)
     local offset = files.offsetOfWord(uri, diag.range.start)
@@ -386,6 +454,7 @@ local function solveDiagnostic(uri, diag, start, results)
         solveUndefinedGlobal(uri, diag, results)
     elseif diag.code == 'suggested-import' then
         solveSuggestedImport(uri, diag, results)
+        solveAddImportAnnotation(uri, diag, results)
     elseif diag.code == 'lowercase-global' then
         solveLowercaseGlobal(uri, diag, results)
     elseif diag.code == 'newline-call' then

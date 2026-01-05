@@ -41,6 +41,62 @@ function registerCustomCommands(context: ExtensionContext) {
             return;
         }
     }))
+
+    // F1 command: Add @import annotation
+    context.subscriptions.push(Commands.registerCommand('robloxLsp.addImportAnnotation', async () => {
+        const editor = window.activeTextEditor;
+        if (!editor) {
+            window.showWarningMessage('No active text editor');
+            return;
+        }
+
+        // Prompt for file path
+        const filePath = await window.showInputBox({
+            prompt: 'Enter file path to import (relative or absolute)',
+            placeHolder: './lib/utils.lua',
+            validateInput: (value) => {
+                if (!value || value.trim().length === 0) {
+                    return 'File path cannot be empty';
+                }
+                return null;
+            }
+        });
+
+        if (!filePath) {
+            return; // User cancelled
+        }
+
+        // Prompt for alias name
+        const alias = await window.showInputBox({
+            prompt: 'Enter alias name for the import',
+            placeHolder: 'Utils',
+            validateInput: (value) => {
+                if (!value || value.trim().length === 0) {
+                    return 'Alias cannot be empty';
+                }
+                // Check if it's a valid Lua identifier
+                if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(value)) {
+                    return 'Alias must be a valid Lua identifier';
+                }
+                return null;
+            }
+        });
+
+        if (!alias) {
+            return; // User cancelled
+        }
+
+        // Insert the @import annotation at cursor position
+        const importLine = `---@import "${filePath}" as ${alias}
+`;
+        const position = editor.selection.start;
+
+        editor.edit(editBuilder => {
+            editBuilder.insert(position, importLine);
+        });
+
+        window.showInformationMessage(`Added @import annotation for "${alias}"`);
+    }));
 }
 
 let _sortedWorkspaceFolders: string[] | undefined;

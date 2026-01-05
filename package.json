@@ -1062,12 +1062,37 @@
 				"robloxLsp.workspace.ignoreDir": {
 					"default": [
 						".vscode",
-						"**/_Index/**"
+						"**/_Index/**",
+						"**/*.dat",
+						"**/node_modules/**",
+						"**/dist/**",
+						"**/decompiled/**",
+						"**/Decompiled/**",
+						"**/Saved/**"
 					],
 					"items": {
 						"type": "string"
 					},
 					"markdownDescription": "%config.workspace.ignoreDir%",
+					"scope": "resource",
+					"type": "array"
+				},
+				"robloxLsp.workspace.excludeMode": {
+					"default": "blacklist",
+					"enum": [
+						"blacklist",
+						"whitelist"
+					],
+					"markdownDescription": "%config.workspace.excludeMode%",
+					"scope": "resource",
+					"type": "string"
+				},
+				"robloxLsp.workspace.includeDir": {
+					"default": [],
+					"items": {
+						"type": "string"
+					},
+					"markdownDescription": "%config.workspace.includeDir%",
 					"scope": "resource",
 					"type": "array"
 				},
@@ -1196,7 +1221,9 @@
 					"type": "boolean"
 				},
 				"robloxLsp.suggestedImports.importIgnore": {
-					"default": ["**/_Index/**"],
+					"default": [
+						"**/_Index/**"
+					],
 					"items": {
 						"type": "string"
 					},
@@ -1292,10 +1319,22 @@
 					"type": "string"
 				},
 				"robloxLsp.debug.categories": {
-					"default": ["import", "completion", "diagnostics"],
+					"default": [
+						"import",
+						"completion",
+						"diagnostics"
+					],
 					"description": "Debug log categories to enable. Available: import, completion, diagnostics, vm, parser, files",
 					"items": {
-						"enum": ["import", "completion", "diagnostics", "vm", "parser", "files", "all"],
+						"enum": [
+							"import",
+							"completion",
+							"diagnostics",
+							"vm",
+							"parser",
+							"files",
+							"all"
+						],
 						"type": "string"
 					},
 					"scope": "resource",
@@ -1304,7 +1343,13 @@
 				"robloxLsp.debug.logLevel": {
 					"default": "debug",
 					"description": "Log level: trace (most verbose), debug, info, warn, error (least verbose)",
-					"enum": ["trace", "debug", "info", "warn", "error"],
+					"enum": [
+						"trace",
+						"debug",
+						"info",
+						"warn",
+						"error"
+					],
 					"scope": "resource",
 					"type": "string"
 				},
@@ -1329,6 +1374,18 @@
 				"robloxLsp.useMaouDataTypes": {
 					"default": true,
 					"description": "Use official Roblox type definitions (globalTypes.d.luau) from MaouData for enhanced type inference.",
+					"scope": "resource",
+					"type": "boolean"
+				},
+				"robloxLsp.quickImport.enable": {
+					"default": true,
+					"markdownDescription": "Enable quick @import features (code actions, commands)",
+					"scope": "resource",
+					"type": "boolean"
+				},
+				"robloxLsp.quickImport.showCodeAction": {
+					"default": true,
+					"markdownDescription": "Show code action to add @import annotation",
 					"scope": "resource",
 					"type": "boolean"
 				}

@@ -519,6 +519,7 @@ local function checkFieldThen(name, src, word, start, offset, parent, oop, text,
                 detail = getParams(value, oop)
             } or nil,
             deprecated = vm.isDeprecated(src) or nil,
+            sortText   = src.fromImport and ("\0%03d%s"):format(0, name) or name, -- Priority: imports first
             id         = stack(function ()
                 return {
                     detail      = buildDetail(src, oop),
@@ -569,6 +570,7 @@ local function checkFieldThen(name, src, word, start, offset, parent, oop, text,
         deprecated = vm.isDeprecated(src) or nil,
         textEdit   = textEdit,
         additionalTextEdits = additionalTextEdits,
+        sortText   = src.fromImport and ("\0%03d%s"):format(0, name) or name, -- Priority: imports first
         id         = stack(function ()
             return {
                 detail      = buildDetail(src),

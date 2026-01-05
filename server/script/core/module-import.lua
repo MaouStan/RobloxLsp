@@ -386,6 +386,55 @@ function rbximports.buildInsertRequire(ast, offset, name, path)
 	}
 end
 
+
+-- Build a text edit for inserting @import annotation
+function rbximports.buildInsertImportAnnotation(ast, offset, name, path)
+    local uri = guide.getUri(ast.ast)
+    local text = files.getText(uri)
+    local lines = files.getLines(uri)
+    
+    -- Find the position to insert the annotation
+    -- We want to insert it before the first usage or require statement
+    local insertPos = offset
+    
+    -- Find all require calls for this name
+    guide.eachSourceType(ast.ast, 'callargs', function (source)
+        if guide.getSimpleName(source.parent.node) == "require" then
+            for _, arg in ipairs(source) do
+                if arg.type == "string" and arg[1] == path then
+                    -- Found a require() call for this path
+                    -- Insert annotation before it
+                    local row = calcline.rowcol(text, arg.start)
+                    if arg.start < insertPos then
+                        insertPos = arg.start
+                    end
+                end
+            end
+        end
+    end)
+    
+    -- Find the line start
+    local row = calcline.rowcol(text, insertPos)
+    local start = lines[row].start
+    
+    -- Convert path to file path format if it's a game path
+    local filePath = path
+    if path:match("^game%..*") then
+        -- Keep game paths as is
+        filePath = path
+    elseif path:match("^script%..*") then
+        -- Keep script paths as is  
+        filePath = path
+    end
+    
+    return {
+        start   = start,
+        finish  = start - 1,
+        newText = ('---@import "%s" as %s
+'):format(filePath, name),
+    }
+end
+
 function rbximports.buildInsertGetService(ast, offset, serviceName)
     local uri = guide.getUri(ast.ast)
     local text  = files.getText(uri)

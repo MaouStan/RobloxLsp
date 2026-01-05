@@ -1,9 +1,8 @@
---[[
-    @import Example - demonstrates the @import annotation for IntelliSense
-]]
+---@import "./lib1.lua" as Utils
 
----@import "D:/Code/RobloxLsp/Example/lib1.lua" as Utils
+-- Global variables with similar names (should appear AFTER imports)
+windows = 1
+wins = 2
+WindUI = 3
 
--- Test: Using Utils as a global (the import alias should provide IntelliSense)
-Utils.greet("Test")
-Utils.gre
+Utils.  -- <-- Autocomplete here, verify 'win' and 'greet' appear FIRST

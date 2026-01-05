@@ -69,6 +69,8 @@
     "config.window.progressBar": "Show progress bar in status bar.",
     "config.window.statusBar": "Show extension status in status bar.",
     "config.workspace.ignoreDir": "Ignored files and directories (Use `.gitignore` grammar).\n",
+    "config.workspace.excludeMode": "How workspace patterns work:\n- **blacklist** (default): ignoreDir patterns hide from diagnostics, but @import still works\n- **whitelist**: only includeDir patterns are loaded",
+    "config.workspace.includeDir": "Patterns to include when excludeMode is 'whitelist'. Use .gitignore grammar.",
     "config.workspace.ignoreSubmodules": "Ignore submodules.",
     "config.workspace.library": "The directory path of the external function library.\nThe language service will additionally load the lua files in these directories, even if they are not in the current workspace, for definition, completion and other features.\n",
     "config.workspace.maxPreload": "Max preloaded files.",

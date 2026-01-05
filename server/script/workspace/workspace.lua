@@ -77,58 +77,73 @@ function m.getNativeMatcher()
     end
 
     local pattern = {}
-    -- config.workspace.ignoreDir
-    for path in pairs(config.config.workspace.ignoreDir) do
-        log.info('Ignore directory:', path)
-        pattern[#pattern+1] = path
-    end
-    -- config.files.exclude
-    if config.config.workspace.useFilesExclude then
-        for path, ignore in pairs(config.other.exclude) do
-            if ignore then
-                log.info('Ignore by exclude:', path)
-                pattern[#pattern+1] = path
-            end
+    local excludeMode = config.config.workspace.excludeMode or "blacklist"
+
+    if excludeMode == "whitelist" then
+        -- Whitelist mode: ONLY include includeDir patterns
+        -- First, add a pattern to ignore everything
+        pattern[#pattern+1] = "*"
+        -- Then add negation patterns for includeDir
+        for path in pairs(config.config.workspace.includeDir) do
+            log.info('Include directory:', path)
+            -- Negate the pattern to "unignore" it
+            pattern[#pattern+1] = "!" .. path
         end
-    end
-    -- config.workspace.ignoreSubmodules
-    if config.config.workspace.ignoreSubmodules then
-        local buf = pub.awaitTask('loadFile', furi.encode(m.path .. '/.gitmodules'))
-        if buf then
-            for path in buf:gmatch('path = ([^\r\n]+)') do
-                log.info('Ignore by .gitmodules:', path)
-                pattern[#pattern+1] = path
-            end
+    else
+        -- Blacklist mode (default): Exclude ignoreDir patterns
+        -- config.workspace.ignoreDir
+        for path in pairs(config.config.workspace.ignoreDir) do
+            log.info('Ignore directory:', path)
+            pattern[#pattern+1] = path
         end
-    end
-    -- config.workspace.useGitIgnore
-    if config.config.workspace.useGitIgnore then
-        local buf = pub.awaitTask('loadFile', furi.encode(m.path .. '/.gitignore'))
-        if buf then
-            for line in buf:gmatch '[^\r\n]+' do
-                if line:sub(1, 1) ~= '#' then
-                    log.info('Ignore by .gitignore:', line)
-                    pattern[#pattern+1] = line
+        -- config.files.exclude
+        if config.config.workspace.useFilesExclude then
+            for path, ignore in pairs(config.other.exclude) do
+                if ignore then
+                    log.info('Ignore by exclude:', path)
+                    pattern[#pattern+1] = path
                 end
             end
         end
-        buf = pub.awaitTask('loadFile', furi.encode(m.path .. '/.git/info/exclude'))
-        if buf then
-            for line in buf:gmatch '[^\r\n]+' do
-                if line:sub(1, 1) ~= '#' then
-                    log.info('Ignore by .git/info/exclude:', line)
-                    pattern[#pattern+1] = line
+        -- config.workspace.ignoreSubmodules
+        if config.config.workspace.ignoreSubmodules then
+            local buf = pub.awaitTask('loadFile', furi.encode(m.path .. '/.gitmodules'))
+            if buf then
+                for path in buf:gmatch('path = ([^\r\n]+)') do
+                    log.info('Ignore by .gitmodules:', path)
+                    pattern[#pattern+1] = path
                 end
             end
         end
-    end
-    -- config.workspace.library
-    for path in pairs(config.config.workspace.library) do
-        path = path:gsub('${(.-)}', {
-            meta = (ROOT / 'meta' / '3rd'):string(),
-        })
-        log.info('Ignore by library:', path)
-        pattern[#pattern+1] = path
+        -- config.workspace.useGitIgnore
+        if config.config.workspace.useGitIgnore then
+            local buf = pub.awaitTask('loadFile', furi.encode(m.path .. '/.gitignore'))
+            if buf then
+                for line in buf:gmatch '[^\r\n]+' do
+                    if line:sub(1, 1) ~= '#' then
+                        log.info('Ignore by .gitignore:', line)
+                        pattern[#pattern+1] = line
+                    end
+                end
+            end
+            buf = pub.awaitTask('loadFile', furi.encode(m.path .. '/.git/info/exclude'))
+            if buf then
+                for line in buf:gmatch '[^\r\n]+' do
+                    if line:sub(1, 1) ~= '#' then
+                        log.info('Ignore by .git/info/exclude:', line)
+                        pattern[#pattern+1] = line
+                    end
+                end
+            end
+        end
+        -- config.workspace.library
+        for path in pairs(config.config.workspace.library) do
+            path = path:gsub('${(.-)}', {
+                meta = (ROOT / 'meta' / '3rd'):string(),
+            })
+            log.info('Ignore by library:', path)
+            pattern[#pattern+1] = path
+        end
     end
 
     m.nativeMatcher = glob.gitignore(pattern, m.matchOption, m.globInterface)
