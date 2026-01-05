@@ -53,7 +53,7 @@ end
 function m.relative(path, base)
     local sPath = fs.absolute(path):string()
     local sBase = fs.absolute(base):string()
-    --TODO 先只支持最简单的情况
+    -- Only supports simple case: path is under base
     if  sPath:sub(1, #sBase):lower() == sBase:lower()
     and sPath:sub(#sBase + 1, #sBase + 1):match '^[/\\]' then
         return fs.path(sPath:sub(#sBase + 1):gsub('^[/\\]+', ''))

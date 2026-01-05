@@ -22,6 +22,7 @@ local glob         = require 'glob'
 local furi         = require 'file-uri'
 local client       = require 'provider.client'
 local plugin       = require 'plugin'
+local fs           = require 'bee.filesystem'
 
 local DiagnosticModes = {
     'disable-next-line',
@@ -2191,6 +2192,120 @@ local function tryLuaDocBySource(ast, offset, source, results)
                 textEdit = infos.textEdit,
             }
         end
+    elseif source.type == "doc.import" then
+        -- Get current file directory for relative path completion
+        local myUri = guide.getUri(ast.ast)
+        local myPath = furi.decode(myUri)
+        local currentDir = fs.path(myPath):parent_path()
+
+        -- Parse current input path to get partial directory
+        local inputPath = source.path or ""
+
+        -- Determine base directory for completion
+        local baseDir = currentDir
+        local pathToComplete = inputPath
+
+        -- Check for workspace root import (starts with /)
+        if inputPath:match("^[/\\]") then
+            if workspace.path and workspace.path ~= "" then
+                baseDir = fs.path(workspace.path)
+                pathToComplete = inputPath:sub(2) -- Remove leading /
+            else
+                return true
+            end
+        else
+            -- Handle relative paths with ../ and ./
+            local upCount = 0
+            local remainingPath = inputPath
+
+            -- Count parent directory references
+            for _ in remainingPath:gmatch("%.%.") do
+                upCount = upCount + 1
+            end
+
+            -- Navigate up from current directory
+            local tempDir = currentDir
+            for _ = 1, upCount do
+                tempDir = tempDir:parent_path()
+            end
+            baseDir = tempDir
+
+            -- Remove ../ and ./ prefixes for completion
+            pathToComplete = remainingPath:gsub("^%.%.[/\\]", ""):gsub("^%.[/\\]", "")
+        end
+
+        -- Scan directory for files and folders
+        local scanPath = baseDir
+        if pathToComplete ~= "" then
+            scanPath = baseDir / pathToComplete
+        end
+
+        if fs.exists(scanPath) and fs.is_directory(scanPath) then
+            local collect = {}
+            for entry in fs.directory(scanPath):list() do
+                local entryName = entry:string():match("[^/\\]+$")
+                local entryPath = scanPath / entry
+
+                -- Skip hidden files/directories
+                if entryName:sub(1, 1) ~= "." then
+                    local isDir = fs.is_directory(entryPath)
+
+                    -- Add .lua or .luau extension for files
+                    local displayLabel = entryName
+                    if not isDir then
+                        local ext = entryName:match("%.([^.]+)$")
+                        if ext == "lua" or ext == "luau" then
+                            -- Show filename without extension for cleaner completion
+                            displayLabel = entryName:gsub("%.[^.]+$", "")
+                        end
+                    end
+
+                    -- Build relative path from original input
+                    local relativePath
+                    if inputPath:match("^[/\\]") then
+                        -- Workspace root import
+                        relativePath = "/" .. pathToComplete .. "/" .. displayLabel
+                    else
+                        -- Reconstruct the relative path with ../ prefixes
+                        local prefix = ""
+                        for _ = 1, upCount do
+                            prefix = prefix .. "../"
+                        end
+                        if inputPath:match("^%.") then
+                            relativePath = prefix .. pathToComplete .. "/" .. displayLabel
+                        else
+                            relativePath = "./" .. pathToComplete .. "/" .. displayLabel
+                        end
+                    end
+
+                    -- Add directory indicator
+                    if isDir then
+                        relativePath = relativePath .. "/"
+                        displayLabel = displayLabel .. "/"
+                    end
+
+                    if not collect[displayLabel] then
+                        collect[displayLabel] = {
+                            kind = isDir and define.CompletionItemKind.Folder or define.CompletionItemKind.File,
+                            textEdit = {
+                                start = source.start,
+                                finish = source.finish,
+                                newText = relativePath,
+                            }
+                        }
+                    end
+                end
+            end
+
+            for label, info in util.sortPairs(collect) do
+                results[#results+1] = {
+                    label = label,
+                    kind = info.kind,
+                    textEdit = info.textEdit,
+                }
+            end
+        end
+        return true
     elseif source.type == "doc.typecheck" then
         for _, mode in ipairs(TypecheckModes) do
             if matchKey(source.mode, mode) then

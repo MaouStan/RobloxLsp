@@ -9,7 +9,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deactivate = exports.activate = void 0;
+exports.activate = activate;
+exports.deactivate = deactivate;
 const vscode = require("vscode");
 const languageserver = require("./languageserver");
 const fetch = require("node-fetch");
@@ -38,6 +39,9 @@ function writeToFile(path, content) {
     }
 }
 function updateRobloxAPI(context) {
+    // Check if MaouData files exist (bundled with extension)
+    const maouDataPath = context.asAbsolutePath(path.join('server', 'maou-data', 'en-us.json'));
+    const useMaouData = fs.existsSync(maouDataPath);
     fetchData('https://raw.githubusercontent.com/CloneTrooper1019/Roblox-Client-Tracker/roblox/version.txt', (lastVersion) => {
         try {
             const currentVersion = fs.readFileSync(context.asAbsolutePath(path.join('server', 'api', 'version.txt')), 'utf8');
@@ -53,12 +57,13 @@ function updateRobloxAPI(context) {
                                 writeToFile(context.asAbsolutePath(path.join('server', 'api', 'API-Dump.json')), data);
                             }, resolve);
                         }),
-                        new Promise(resolve => {
+                        // Skip en-us.json download if using MaouData (bundled documentation)
+                        !useMaouData ? new Promise(resolve => {
                             fetchData('https://raw.githubusercontent.com/MaximumADHD/Roblox-Client-Tracker/roblox/api-docs/en-us.json', (data) => {
                                 writeToFile(context.asAbsolutePath(path.join('server', 'api', 'API-Docs.json')), data);
                                 resolve();
                             });
-                        })
+                        }) : Promise.resolve()
                     ]);
                 })).then(() => {
                     vscode.window.showInformationMessage(`Roblox LSP: Updated API (${lastVersion}). [View changes](https://maximumadhd.github.io/Roblox-API-History)`, "Reload VSCode").then((item) => __awaiter(this, void 0, void 0, function* () {
@@ -129,9 +134,7 @@ function activate(context) {
     updateRobloxAPI(context);
     languageserver.activate(context);
 }
-exports.activate = activate;
 function deactivate() {
     languageserver.deactivate();
 }
-exports.deactivate = deactivate;
 //# sourceMappingURL=extension.js.map

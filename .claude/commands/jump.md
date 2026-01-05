@@ -37,7 +37,7 @@ Display output directly, no additions needed.
 
 ## Track Files
 
-Location: `psi/inbox/tracks/YYMMDDHHMM-topic.md`
+Location: `ψ/inbox/tracks/YYMMDDHHMM-topic.md`
 
 Created with template containing:
 - Goal

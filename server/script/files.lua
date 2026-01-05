@@ -458,6 +458,13 @@ function m.compileAst(uri, text)
         local clock = os.clock()
         parser:luadoc(state)
         local passed = os.clock() - clock
+        -- DEBUG: Log if docs were created (docs are in state.ast.docs or state.docs)
+        local docs = state.docs or state.ast and state.ast.docs
+        if docs and #docs > 0 then
+            log.info('[@import] compileAst: docs CREATED for', uri, 'count:', #docs, 'location:', state.docs and 'state.docs' or 'state.ast.docs')
+        else
+            log.warn('[@import] compileAst: NO DOCS for', uri, 'state.docs:', state and state.docs or 'nil', 'state.ast.docs:', state and state.ast and state.ast.docs or 'nil')
+        end
         if passed > 0.1 then
             log.warn(('Parse LuaDoc of [%s] takes [%.3f] sec, size [%.3f] kb.'):format(uri, passed, #text / 1000))
         end
@@ -489,12 +496,20 @@ function m.getAst(uri)
     if not file then
         return nil
     end
+    -- Skip parsing .d.luau files (type definition files - too large/complex for parser)
+    if uri:match("%.d%.luau$") then
+        return nil
+    end
     local ast = m.astMap[uri]
     if not ast then
+        log.info('[@import] getAst: COMPILING new AST for', uri)
         ast = m.compileAst(uri, file.text)
         m.astMap[uri] = ast
         m.requireMap[uri] = nil
         --await.delay()
+    else
+        local docs = ast.docs or ast.ast and ast.ast.docs
+        log.info('[@import] getAst: CACHE HIT for', uri, 'ast.docs=', ast.docs and 'exists (' .. #ast.docs .. ')' or 'nil', 'ast.ast.docs=', ast.ast and ast.ast.docs and 'exists (' .. #ast.ast.docs .. ')' or 'nil')
     end
     file.cacheActiveTime = timer.clock()
     return ast
@@ -929,7 +944,7 @@ function m.flushFileCache(uri)
 end
 
 function m.init()
-    --TODO 可以清空文件缓存，之后看要不要启用吧
+    -- Auto-clear file cache (disabled - may enable in future)
     --timer.loop(10, function ()
     --    local list = {}
     --    for _, file in pairs(m.fileMap) do

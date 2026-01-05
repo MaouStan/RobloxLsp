@@ -149,7 +149,7 @@ function m.delay()
     if m.onWatch('delay', co) == false then
         return
     end
-    -- TODO
+    -- Skip priority tasks (already handled)
     if current.priority then
         return
     end

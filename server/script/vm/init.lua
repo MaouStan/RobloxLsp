@@ -1,3 +1,5 @@
+---@class vm
+---@description Virtual Machine module for Lua/Luau semantic analysis
 local vm = require 'vm.vm'
 require 'vm.getGlobals'
 require 'vm.getDocs'

@@ -3499,7 +3499,7 @@ end
 function m.checkSearchLevel(status)
     status.share.back = status.share.back or 0
     if status.share.back >= (status.interface.searchLevel or 0) then
-        -- TODO 限制向前搜索的次数
+        -- Search level limit disabled (may enable for performance)
         --return true
     end
     status.share.back = status.share.back + 1

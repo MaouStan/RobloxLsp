@@ -2,6 +2,8 @@ local json = require 'json'
 local lang = require 'language'
 local rojo = require 'library.rojo'
 local util = require 'utility'
+local luauTypes = require 'library.luau-types'
+local fs = require 'bee.filesystem'
 local defaultlibs
 
 local m = {}
@@ -602,6 +604,27 @@ function m.getClassNames()
         m.CreatableInstances = {}
         m.Enums = {}
         local api = m.loadApi()
+
+        -- Load MaouData metadata if available
+        local maouMetadata = luauTypes.getMetadata()
+        local maouCreatable = maouMetadata and luauTypes.getCreatableInstances()
+        local maouServices = maouMetadata and luauTypes.getServices()
+
+        -- Convert MaouData arrays to lookup tables
+        local maouCreatableSet = {}
+        local maouServicesSet = {}
+        if maouCreatable then
+            for _, name in ipairs(maouCreatable) do
+                maouCreatableSet[name] = true
+            end
+        end
+        if maouServices then
+            for _, name in ipairs(maouServices) do
+                maouServicesSet[name] = true
+                m.Services[name] = true
+            end
+        end
+
         for _, rbxClass in pairs(api.Classes) do
             local notCreatable = false
             if rbxClass.Tags then
@@ -617,7 +640,8 @@ function m.getClassNames()
                     end
                 end
             end
-            if not notCreatable then
+            -- Use MaouData creatable instances if available
+            if maouCreatableSet[rbxClass.Name] or (not maouCreatable and not notCreatable) then
                 m.CreatableInstances[rbxClass.Name] = true
             end
             m.ClassNames[rbxClass.Name] = rbxClass.Superclass
@@ -785,7 +809,12 @@ end
 
 local function parseDocumentaion()
     if not m.Docs then
-        m.Docs = json.decode(util.loadFile(ROOT / "api" / "API-Docs.json"))
+        -- Try to load from MaouData first (bundled official documentation)
+        local maouDataPath = ROOT / "maou-data" / "en-us.json"
+        local apiDocsPath = ROOT / "api" / "API-Docs.json"
+
+        local docsPath = fs.exists(maouDataPath) and maouDataPath or apiDocsPath
+        m.Docs = json.decode(util.loadFile(docsPath))
     end
     local success, err = pcall(function ()
         for id, doc in pairs(m.Docs) do

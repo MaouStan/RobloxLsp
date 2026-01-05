@@ -52,6 +52,7 @@ end
 log = require 'log'
 log.init(ROOT, fs.path(LOGPATH) / 'service.log')
 log.info('Lua Lsp startup, root: ', ROOT)
+log.info('[@import] === CUSTOM LUA SERVER STARTED ===')
 log.debug('ROOT:', ROOT:string())
 log.debug('LOGPATH:', LOGPATH)
 log.debug('METAPATH:', METAPATH)

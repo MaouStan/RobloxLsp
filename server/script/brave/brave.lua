@@ -46,7 +46,7 @@ function m.start()
     while true do
         local name, id, params = taskPad:bpop()
         local ability = m.ability[name]
-        -- TODO
+        -- Unknown work type - log error and skip
         if not ability then
             waiter:push(m.id, id)
             log.error('Brave can not handle this work: ' .. name)

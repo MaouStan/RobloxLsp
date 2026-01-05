@@ -1,28 +1,21 @@
 {
-    
-    "Lua.runtime.version": "Lua 5.4",
-    "Lua.workspace.ignoreDir": [
-        "server/meta",
-        "server/locale",
-        "locale",
-    ],
-    "Lua.color.mode": "Grammar",
-    "Lua.diagnostics.globals": [
-        "ERR",
-        "OUT",
-        "IN",
-        "log",
-        "ac",
-        "_G",
-        "GC",
-        "ID",
-        "DEVELOP",
-        "DBGPORT",
-        "DBGWAIT",
-        "TEST"
-    ],
-    "Lua.hover.previewFields": 10,
-    "Lua.diagnostics.disable": [
-        "undefined-field",
-    ]
+    // Enable development mode for the extension
+    "robloxLsp.develop.enable": true,
+    "robloxLsp.develop.debuggerPort": 11412,
+    "robloxLsp.develop.debuggerWait": false,
+
+    // Use custom Lua server (not official Luau LSP)
+    "robloxLsp.useOfficialLsp": false,
+
+    // Enable diagnostics
+    "robloxLsp.diagnostics.enable": true,
+
+    // Log all LSP commands for debugging
+    "robloxLsp.misc.logServer": true,
+
+    // Lua file associations
+    "files.associations": {
+        "*.lua": "lua",
+        "*.luau": "lua"
+    }
 }

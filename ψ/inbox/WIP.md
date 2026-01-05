@@ -1,71 +1,70 @@
-# Work In Progress
+# WIP — 2026-01-05 [21:20]
 
-**Saved**: 2026-01-03
-**Session**: Variable Import via @import Annotation
-
-## Current Task
-Implement variable import feature for Roblox LSP extension - allows importing variables from external files using `---@import` annotation or auto-detecting `loadstring(readfile(...))()` pattern.
-
-## Progress
-
-### Completed
-- [x] **Task 1**: Add `@import` annotation parser to luadoc.lua
-  - Added `parseImport()` function
-  - Registered in `convertTokens()`
-  - Supports both `"path"` and `'path'` syntax
-
-- [x] **Task 2**: Store import annotations in AST binding
-  - Handled by existing `bindDocs()` function
-
-- [x] **Task 3**: Implement import resolution in getGlobals.lua
-  - Added `resolveImportPath()` - resolves relative paths
-  - Added `getImportedGlobals()` - extracts globals from @import
-  - Modified `vm.getGlobals()` to include imported globals
-
-- [x] **Task 4**: Handle loadstring() pattern detection
-  - Added `detectLoadstringImports()` - finds loadstring(readfile(...))() patterns
-  - Added `getLoadstringImports()` - extracts globals from those patterns
-
-- [x] **Task 5**: Update undefined-global diagnostic
-  - Automatically handled - uses `vm.getGlobalSets()` which now includes imports
-
-## Next Steps
-1. **Test the build** - Ensure no syntax errors
-2. **Commit changes** - Push to repository
-3. **Test with Example folder** - Verify it works with `./Example/main.luau`
-4. **Update README** - Document the new `@import` feature
-
-## Important Context
-- **Repository**: MaouStan/RobloxLsp (forked from NightrainsRbx/RobloxLsp)
-- **Issue**: #1 - "Plan: Variable Import via @import Annotation"
-- **Remote**: `origin` = MaouStan/RobloxLsp (your fork)
-- **Branch**: master
-
-## Files Modified
-- `server/script/parser/luadoc.lua` - Added `parseImport()` function (lines ~1025-1048)
-- `server/script/vm/getGlobals.lua` - Added:
-  - `resolveImportPath()` - resolve relative file paths
-  - `getImportedGlobals()` - extract globals from @import annotations
-  - `detectLoadstringImports()` - find loadstring patterns
-  - `getLoadstringImports()` - extract globals from loadstring patterns
-  - Modified `vm.getGlobals()` to include imported globals
-
-## Example Usage
-
-```lua
----@import "Utils/ScriptLoader/init.luau"
-local GG = loadstring(readfile("Utils/ScriptLoader/init.luau"))()
-
-print(GG.selff)  -- No "undefined global" diagnostic
+## Git Status
+```
+M .claude/commands/jump.md
+M .vscode/settings.json
+M client/out/*.js*
+M client/package*.json
+M client/src/*.ts
+M package.json
+M robloxlsp-maoustan-1.7.0.vsix
+M server/api/*.json
+M server/def/env.luau (NEW: exploit globals)
+M server/main.lua
+M server/script/**/*.lua
+?? server/script/core/diagnostics/invalid-import-path.lua
+?? server/script/library/luau-types.lua
+?? MaouData/ (official Roblox definitions)
 ```
 
-Auto-detection also works:
+## งานค้าง
+- [ ] **Test exploit globals** - Reload extension and verify IntelliSense works
+- [ ] **@import autocomplete** - Still needs debugging (see below)
+- [ ] **Commit changes** - After testing
+
+## Exploit Globals (JUST ADDED ✨)
+
+### Changes Made
+Just added Roblox exploit environment function support:
+
+**`server/script/parser/compile.lua`** - Added to `specials` table:
+- Environment: `getgenv`, `getrenv`, `getfenv`, `setfenv`
+- Instance utils: `getcallingscript`, `getloadedmodules`, `getgc`, `getinstances`, `getnilinstances`, `setsimulationradius`, `cloneref`, `clonereference`, `compareinstances`
+- Closure checks: `checkcaller`, `islclosure`, `iscclosure`, `is_synapse_function`, `newcclosure`, `isexecutorclosure`, `identifyexecutor`
+- File I/O: `readfile`, `writefile`, `listfiles`, `makefolder`, `appendfile`, `isfile`, `isfolder`, `delfile`, `delfolder`
+
+**`server/def/env.luau`** - Added type definitions with proper Luau types
+
+### Super Global Pattern
+Now supports:
 ```lua
-local ScriptLoader = loadstring(readfile("Utils/ScriptLoader/init.luau"))()
--- Variables from init.luau are automatically recognized
+local GG = (getgenv and getgenv()) or _G or shared or false
 ```
 
-## Oracle Framework
-- Installed: `/awaken` - Oracle commands, agents, skills
-- Commands: trace, recap, rrr, snapshot, forward, wip, standup, now, hours, jump, pending
-- Use `/recap` at start of next session to restore context
+---
+
+## @import AutoComplete (STILL IN PROGRESS 🔄)
+
+### Status
+Autocomplete for `---@import` annotations still not working.
+
+### Next Steps
+1. **Test exploit globals first** - Reload extension and verify
+2. **Debug @import** - Enable `robloxLsp.debug.enable: true`
+3. **Trace completion flow** - Check `[import]` logs
+
+### Test File
+```lua
+---@import "./lib1.lua" as Utils
+Utils.greet("test")
+Utils.  -- <-- Should autocomplete 'greet', 'farewell'
+```
+
+---
+
+## Context for Next Session
+- Just added exploit environment globals (`getgenv`, `readfile`, etc.)
+- Need to reload extension and test IntelliSense
+- @import autocomplete still needs debugging
+- All changes ready for commit after testing

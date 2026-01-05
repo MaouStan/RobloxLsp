@@ -2,7 +2,7 @@ local files    = require 'files'
 local guide    = require 'core.guide'
 local lang     = require 'language'
 
--- TODO: 检查路径是否可达
+-- Check if path is reachable (TODO: implement path reachability analysis)
 local function mayRun(path)
     return true
 end

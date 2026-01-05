@@ -9,7 +9,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deactivate = exports.activate = void 0;
+exports.activate = activate;
+exports.deactivate = deactivate;
 const path = require("path");
 const os = require("os");
 const fs = require("fs");
@@ -79,31 +80,54 @@ function start(context, documentSelector, folder) {
     let debuggerPort = config.get("robloxLsp.develop.debuggerPort");
     let debuggerWait = config.get("robloxLsp.develop.debuggerWait");
     let commandParam = config.get("robloxLsp.misc.parameters");
+    let useOfficialLsp = config.get("robloxLsp.useOfficialLsp");
     let command;
     let platform = os.platform();
-    switch (platform) {
-        case "win32":
-            command = context.asAbsolutePath(path.join('server', 'bin', 'Windows', 'lua-language-server.exe'));
-            break;
-        case "linux":
-            command = context.asAbsolutePath(path.join('server', 'bin', 'Linux', 'lua-language-server'));
-            fs.chmodSync(command, '777');
-            break;
-        case "darwin":
-            command = context.asAbsolutePath(path.join('server', 'bin', 'macOS', 'lua-language-server'));
-            fs.chmodSync(command, '777');
-            break;
+    let args = [];
+    let isOfficialLsp = false;
+    // Check if official Luau LSP from MaouData should be used
+    if (useOfficialLsp) {
+        const officialLspPath = context.asAbsolutePath(path.join('server', 'bin', platform === 'win32' ? 'Windows' : platform, 'luau-lsp.exe'));
+        if (fs.existsSync(officialLspPath)) {
+            command = officialLspPath;
+            isOfficialLsp = true;
+            // Official luau-lsp uses 'lsp' subcommand
+            args = ['lsp'];
+        }
+        else {
+            vscode.window.showWarningMessage("Official Luau LSP (luau-lsp.exe) not found. Falling back to custom server. " +
+                "Run build.bat with MaouData present to bundle the official LSP.");
+            // Fall through to custom server below
+        }
     }
-    let serverOptions = {
-        command: command,
-        args: [
+    // Use custom lua-language-server (default or fallback)
+    if (!command) {
+        switch (platform) {
+            case "win32":
+                command = context.asAbsolutePath(path.join('server', 'bin', 'Windows', 'lua-language-server.exe'));
+                break;
+            case "linux":
+                command = context.asAbsolutePath(path.join('server', 'bin', 'Linux', 'lua-language-server'));
+                fs.chmodSync(command, '777');
+                break;
+            case "darwin":
+                command = context.asAbsolutePath(path.join('server', 'bin', 'macOS', 'lua-language-server'));
+                fs.chmodSync(command, '777');
+                break;
+        }
+        // Custom server arguments
+        args = [
             '-E',
             context.asAbsolutePath(path.join('server', 'main.lua')),
             `--develop=${develop}`,
             `--dbgport=${debuggerPort}`,
             `--dbgwait=${debuggerWait}`,
             commandParam,
-        ]
+        ];
+    }
+    let serverOptions = {
+        command: command,
+        args: args
     };
     let client = new node_1.LanguageClient('Lua', 'Lua', serverOptions, clientOptions);
     client.registerProposedFeatures();
@@ -158,7 +182,7 @@ function startPluginServer(client) {
             res.send(lastUpdate);
         });
         let port = vscode.workspace.getConfiguration().get("robloxLsp.misc.serverPort");
-        if (port > 0) {
+        if (port && port > 0) {
             server = app.listen(port, () => {
                 // vscode.window.showInformationMessage(`Started Roblox LSP Plugin Server on port ${port}`);
             });
@@ -370,7 +394,6 @@ function activate(context) {
         }
     });
 }
-exports.activate = activate;
 function deactivate() {
     if (server != undefined) {
         server.close();
@@ -385,5 +408,4 @@ function deactivate() {
     }
     return Promise.all(promises).then(() => undefined);
 }
-exports.deactivate = deactivate;
 //# sourceMappingURL=languageserver.js.map

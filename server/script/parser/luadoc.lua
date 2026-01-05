@@ -1,3 +1,5 @@
+---@class parser.luadoc
+---@diagnostic disable: undefined-global
 local m          = require 'lpeglabel'
 local re         = require 'parser.relabel'
 local lines      = require 'parser.lines'
@@ -1029,20 +1031,50 @@ local function parseImport(comment)
     result.start = getStart()
     result.finish = comment.finish
 
+    -- Add debug logging
+    local log = require 'log'
+    log.info('[@import] parseImport called: comment.text=', comment.text)
+
     -- Extract the file path from the comment
     -- Supports: ---@import "path/to/file.luau" or ---@import 'path/to/file.luau'
-    local path = comment.text:match('^%-%s*@import%s*[\'"](.-)[\'"]%s*$')
+    -- Also supports: ---@import "path" as alias
+    local path, alias = comment.text:match('^%s*%-%s*@import%s*[\'"](.-)[\'"]%s*as%s+([%w_]+)%s*$')
     if not path then
-        -- Fallback: try to get path from the next token (string)
-        local tp, str = peekToken()
-        if tp == 'string' then
-            nextToken()
-            path = str
-            result.finish = getFinish()
+        path = comment.text:match('^%s*%-%s*@import%s*[\'"](.-)[\'"]%s*$')
+        if not path then
+            -- Fallback: try to get path from the next token (string)
+            local tp, str = peekToken()
+            if tp == 'string' then
+                nextToken()
+                path = str
+                result.finish = getFinish()
+                -- Check for 'as' keyword after the string
+                if checkToken('name', 'as', 1) then
+                    nextToken()
+                    local aliasTp, aliasText = peekToken()
+                    if aliasTp == 'name' then
+                        nextToken()
+                        alias = aliasText
+                        result.finish = getFinish()
+                    end
+                end
+            end
         end
     end
 
+    -- Trim leading/trailing whitespace from path and alias
+    if path then
+        path = path:match('^%s*(.-)%s*$')
+    end
+    if alias then
+        alias = alias:match('^%s*(.-)%s*$')
+    end
+
     result.path = path or ""
+    result.alias = alias
+
+    -- Log the parsed result
+    log.info('[@import] parsed: path=[' .. result.path .. '] alias=[' .. (result.alias or 'nil') .. ']')
 
     return result
 end

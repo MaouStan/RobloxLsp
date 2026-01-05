@@ -4078,7 +4078,7 @@
                             }
                         },
                         {
-                            "Name": "epsilon",
+                            "Name": "eψlon",
                             "Type": {
                                 "Name": "number"
                             }

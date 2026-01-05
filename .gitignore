@@ -3,3 +3,14 @@
 /server/script/output.lua
 /client/node_modules
 TODO-LIST
+
+# AI Productivity Kit - ψ Structure
+ψ/active/
+ψ/inbox/
+ψ/memory/
+ψ/writing/
+ψ/lab/
+ψ/learn/
+# But keep the directories
+!ψ*/
+!.gitkeep

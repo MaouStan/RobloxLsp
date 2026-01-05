@@ -1278,6 +1278,59 @@
 					"markdownDescription": "%config.typeChecking.showFullType%",
 					"scope": "resource",
 					"type": "boolean"
+				},
+				"robloxLsp.debug.enable": {
+					"default": false,
+					"description": "Enable debug logging for development and troubleshooting",
+					"scope": "resource",
+					"type": "boolean"
+				},
+				"robloxLsp.debug.logFile": {
+					"default": "",
+					"description": "Path to a file where debug logs will be written. Leave empty to log only to Output panel.",
+					"scope": "resource",
+					"type": "string"
+				},
+				"robloxLsp.debug.categories": {
+					"default": ["import", "completion", "diagnostics"],
+					"description": "Debug log categories to enable. Available: import, completion, diagnostics, vm, parser, files",
+					"items": {
+						"enum": ["import", "completion", "diagnostics", "vm", "parser", "files", "all"],
+						"type": "string"
+					},
+					"scope": "resource",
+					"type": "array"
+				},
+				"robloxLsp.debug.logLevel": {
+					"default": "debug",
+					"description": "Log level: trace (most verbose), debug, info, warn, error (least verbose)",
+					"enum": ["trace", "debug", "info", "warn", "error"],
+					"scope": "resource",
+					"type": "string"
+				},
+				"robloxLsp.debug.showRequestTiming": {
+					"default": false,
+					"description": "Show timing information for LSP requests (useful for performance profiling)",
+					"scope": "resource",
+					"type": "boolean"
+				},
+				"robloxLsp.debug.logServerCommands": {
+					"default": false,
+					"description": "Log all LSP server commands and responses",
+					"scope": "resource",
+					"type": "boolean"
+				},
+				"robloxLsp.useOfficialLsp": {
+					"default": false,
+					"description": "Use official Roblox Luau LSP server (luau-lsp.exe) from MaouData instead of custom server. Requires MaouData files to be present.",
+					"scope": "resource",
+					"type": "boolean"
+				},
+				"robloxLsp.useMaouDataTypes": {
+					"default": true,
+					"description": "Use official Roblox type definitions (globalTypes.d.luau) from MaouData for enhanced type inference.",
+					"scope": "resource",
+					"type": "boolean"
 				}
 			},
 			"title": "Roblox LSP",

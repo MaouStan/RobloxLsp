@@ -27,6 +27,10 @@ function writeToFile(path: string, content: string) {
 }
 
 function updateRobloxAPI(context: vscode.ExtensionContext) {
+    // Check if MaouData files exist (bundled with extension)
+    const maouDataPath = context.asAbsolutePath(path.join('server', 'maou-data', 'en-us.json'));
+    const useMaouData = fs.existsSync(maouDataPath);
+
     fetchData('https://raw.githubusercontent.com/CloneTrooper1019/Roblox-Client-Tracker/roblox/version.txt', (lastVersion) => {
         try {
             const currentVersion = fs.readFileSync(context.asAbsolutePath(path.join('server', 'api', 'version.txt')), 'utf8')
@@ -42,12 +46,13 @@ function updateRobloxAPI(context: vscode.ExtensionContext) {
                                 writeToFile(context.asAbsolutePath(path.join('server', 'api', 'API-Dump.json')), data);
                             }, resolve);
                         }),
-                        new Promise<void>(resolve => {
+                        // Skip en-us.json download if using MaouData (bundled documentation)
+                        !useMaouData ? new Promise<void>(resolve => {
                             fetchData('https://raw.githubusercontent.com/MaximumADHD/Roblox-Client-Tracker/roblox/api-docs/en-us.json', (data) => {
                                 writeToFile(context.asAbsolutePath(path.join('server', 'api', 'API-Docs.json')), data);
                                 resolve();
                             });
-                        })
+                        }) : Promise.resolve()
                     ]);
                 }).then(() => {
                     vscode.window.showInformationMessage(`Roblox LSP: Updated API (${lastVersion}). [View changes](https://maximumadhd.github.io/Roblox-API-History)`, "Reload VSCode").then(async (item) => {

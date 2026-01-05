@@ -93,46 +93,69 @@ function start(context: ExtensionContext, documentSelector: DocumentSelector, fo
     let debuggerPort: number = config.get("robloxLsp.develop.debuggerPort");
     let debuggerWait: boolean = config.get("robloxLsp.develop.debuggerWait");
     let commandParam: string = config.get("robloxLsp.misc.parameters");
+    let useOfficialLsp: boolean = config.get("robloxLsp.useOfficialLsp");
     let command: string;
     let platform: string = os.platform();
-    switch (platform) {
-        case "win32":
-            command = context.asAbsolutePath(
-                path.join(
-                    'server',
-                    'bin',
-                    'Windows',
-                    'lua-language-server.exe'
-                )
+    let args: string[] = [];
+    let isOfficialLsp = false;
+
+    // Check if official Luau LSP from MaouData should be used
+    if (useOfficialLsp) {
+        const officialLspPath = context.asAbsolutePath(
+            path.join('server', 'bin', platform === 'win32' ? 'Windows' : platform, 'luau-lsp.exe')
+        );
+        if (fs.existsSync(officialLspPath)) {
+            command = officialLspPath;
+            isOfficialLsp = true;
+            // Official luau-lsp uses 'lsp' subcommand
+            args = ['lsp'];
+        } else {
+            vscode.window.showWarningMessage(
+                "Official Luau LSP (luau-lsp.exe) not found. Falling back to custom server. " +
+                "Run build.bat with MaouData present to bundle the official LSP."
             );
-            break;
-        case "linux":
-            command = context.asAbsolutePath(
-                path.join(
-                    'server',
-                    'bin',
-                    'Linux',
-                    'lua-language-server'
-                )
-            );
-            fs.chmodSync(command, '777');
-            break;
-        case "darwin":
-            command = context.asAbsolutePath(
-                path.join(
-                    'server',
-                    'bin',
-                    'macOS',
-                    'lua-language-server'
-                )
-            );
-            fs.chmodSync(command, '777');
-            break;
+            // Fall through to custom server below
+        }
     }
 
-    let serverOptions: ServerOptions = {
-        command: command,
-        args: [
+    // Use custom lua-language-server (default or fallback)
+    if (!command) {
+        switch (platform) {
+            case "win32":
+                command = context.asAbsolutePath(
+                    path.join(
+                        'server',
+                        'bin',
+                        'Windows',
+                        'lua-language-server.exe'
+                    )
+                );
+                break;
+            case "linux":
+                command = context.asAbsolutePath(
+                    path.join(
+                        'server',
+                        'bin',
+                        'Linux',
+                        'lua-language-server'
+                    )
+                );
+                fs.chmodSync(command, '777');
+                break;
+            case "darwin":
+                command = context.asAbsolutePath(
+                    path.join(
+                        'server',
+                        'bin',
+                        'macOS',
+                        'lua-language-server'
+                    )
+                );
+                fs.chmodSync(command, '777');
+                break;
+        }
+        // Custom server arguments
+        args = [
             '-E',
             context.asAbsolutePath(path.join(
                 'server',
@@ -142,7 +165,12 @@ function start(context: ExtensionContext, documentSelector: DocumentSelector, fo
             `--dbgport=${debuggerPort}`,
             `--dbgwait=${debuggerWait}`,
             commandParam,
-        ]
+        ];
+    }
+
+    let serverOptions: ServerOptions = {
+        command: command,
+        args: args
     };
 
     let client = new LanguageClient(
@@ -204,8 +232,8 @@ function startPluginServer(client: LanguageClient) {
         app.get("/last", (req, res) => {
             res.send(lastUpdate);
         });
-        let port = vscode.workspace.getConfiguration().get("robloxLsp.misc.serverPort");
-        if (port > 0) {
+        let port = vscode.workspace.getConfiguration().get<number>("robloxLsp.misc.serverPort");
+        if (port && port > 0) {
             server = app.listen(port, () => {
                 // vscode.window.showInformationMessage(`Started Roblox LSP Plugin Server on port ${port}`);
             });

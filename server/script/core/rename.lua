@@ -10,7 +10,7 @@ local ws         = require 'workspace'
 local Forcing
 
 local function askForcing(str)
-    -- TODO 总是可以替换
+    -- Always allow replacement (simplified - may add UI prompt later)
     do return true end
     if TEST then
         return true
@@ -19,7 +19,7 @@ local function askForcing(str)
         return Forcing
     end
     local version = files.globalVersion
-    -- TODO
+    -- Show confirmation dialog for invalid identifiers
     local item = proto.awaitRequest('window/showMessageRequest', {
         type    = define.MessageType.Warning,
         message = ('[%s]不是有效的标识符，是否强制替换？'):format(str),
@@ -54,7 +54,7 @@ local function askForcing(str)
 end
 
 local function askForMultiChange(results, newname)
-    -- TODO 总是可以替换
+    -- Always allow multi-file replacement (simplified - may add UI prompt later)
     do return true end
     if TEST then
         return true
@@ -73,7 +73,7 @@ local function askForMultiChange(results, newname)
     end
 
     local version = files.globalVersion
-    -- TODO
+    -- Show confirmation dialog for multi-file changes
     local item = proto.awaitRequest('window/showMessageRequest', {
         type    = define.MessageType.Warning,
         message = ('将修改 %d 个文件，共 %d 处。'):format(

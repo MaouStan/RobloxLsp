@@ -206,14 +206,16 @@ local ConfigTemplate = {
         progressBar     = {true,      Boolean},
     },
     misc = {
-        color3Picker      = {true,      Boolean},
-        importScriptChildren = {false,  Boolean},
-        importIgnore      = {{},        Array(String)},
-        importAlwaysAbsolute = {{},     Array(String)},
-        importPathType    = {"Both", String},
-        goToScriptLink    = {true,      Boolean},
-        serviceAutoImport = {true,      Boolean},
-        serverPort        = {27843,       Integer},
+        color3Picker         = {true,      Boolean},
+        importScriptChildren = {false,     Boolean},
+        importIgnore          = {{},        Array(String)},
+        importAlwaysAbsolute  = {{},       Array(String)},
+        importPathType        = {"Both",    String},
+        goToScriptLink        = {true,      Boolean},
+        serviceAutoImport     = {true,      Boolean},
+        serverPort            = {27843,     Integer},
+        useOfficialLsp        = {false,     Boolean},
+        useMaouDataTypes      = {true,      Boolean},
     },
     suggestedImports = {
         enable            = {true,  Boolean},
@@ -229,6 +231,14 @@ local ConfigTemplate = {
             Hash(String, Boolean),
         },
         showFullType    = {false,       Boolean},
+    },
+    debug = {
+        enable               = {false,      Boolean},
+        logFile              = {'',        String},
+        categories           = {{'import', 'completion', 'diagnostics'}, Array(String)},
+        logLevel             = {'debug',   String},
+        showRequestTiming    = {false,     Boolean},
+        logServerCommands    = {false,     Boolean},
     }
 }
 
@@ -262,6 +272,10 @@ function m.setConfig(config, other)
     m.version = m.version + 1
     xpcall(function ()
         for c, t in pairs(config) do
+            -- Skip if t is not a table (defensive: client might send boolean for unknown categories)
+            if type(t) ~= 'table' then
+                goto CONTINUE_CONFIG
+            end
             for k, v in pairs(t) do
                 local region = ConfigTemplate[c]
                 if region then
@@ -276,6 +290,7 @@ function m.setConfig(config, other)
                     end
                 end
             end
+            ::CONTINUE_CONFIG::
         end
         for k, v in pairs(other) do
             local info = OtherTemplate[k]
